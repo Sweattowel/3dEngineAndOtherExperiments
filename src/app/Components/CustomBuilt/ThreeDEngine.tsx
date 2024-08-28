@@ -152,11 +152,21 @@ export default function TwoDEngine( { dark } : importStruc){
             let trans3 = matmul(rotate_y(pYang), [x3Diff, y3Diff, z3Diff, w3]);
             trans3 = matmul(rotate_x(pXang), trans3);
             trans3 = matmul(rotate_z(pZang), trans3);
-
+            trans1[0] /= trans1[3];  // x1 = x1 / w1
+            trans1[1] /= trans1[3];  // y1 = y1 / w1
+            trans1[2] /= trans1[3];  // z1 = z1 / w1
+            
+            trans2[0] /= trans2[3];  // x2 = x2 / w2
+            trans2[1] /= trans2[3];  // y2 = y2 / w2
+            trans2[2] /= trans2[3];  // z2 = z2 / w2
+            
+            trans3[0] /= trans3[3];  // x3 = x3 / w3
+            trans3[1] /= trans3[3];  // y3 = y3 / w3
+            trans3[2] /= trans3[3];  // z3 = z3 / w
             // Skip triangles behind the player
-            if (trans1[2] < 0 || trans2[2] < 0 || trans3[2] < 0) {
+            if (trans1[2] < 0 || trans2[2] < 0 || trans3[2] < 0 || trans1[3] <= 0 || trans2[3] <= 0 || trans3[3] <= 0) {
                 continue;
-            }    
+            } 
             // Apply perspective projection
             let dis1X = (trans1[0] / (trans1[2])) * perspective + centerX;
             let dis1Y = (trans1[1] / (trans1[2])) * perspective + centerY;
