@@ -20,9 +20,9 @@ export default function TwoDEngine( { dark } : importStruc){
     let turning = false;
     let strafing = false;    
     let pxyz : any = [
-        400,
-        400,
-        5,
+        0,
+        0,
+        -100,
     ]
     let pYang = 0.0;
     let pXang = 0.0;
@@ -40,41 +40,82 @@ export default function TwoDEngine( { dark } : importStruc){
           });
     },[])
     function run(){
+        drawQueue = []
         clearRect()
         controlLogic();
-        drawTriangles(triangles);
+        drawTriangles(worldLines)
+        for (const obj of _obj){
+            drawTriangles(obj);
+        }
+        
         drawTriangles(randomShapes)
         
         pixel(__init__.width / 2, __init__.height / 2)
     }
 
-    const triangles = [
-        // FORMAT
-        // X1 Y1 Z1 W1 X2 Y2 Z2 W2 X3 Y3 Z3 W3
-        // newest shape using 3 point triangle DUUUUHHHH
-        [0, 0, 0, 1, 0, 200, 0, 1, 100, 200, 0, 1],  // Top left
-        [100, 0, 0, 1, 0, 0, 0, 1, 100, 200, 0, 1],  // Top right
-        [100, 0, 100, 1, 0, 0, 100, 1, 100, 200, 100, 1],  // Bottom right
-        [0, 0, 100, 1, 0, 200, 100, 1, 100, 200, 100, 1],  // Bottom left
-        [100, 0, 100, 1, 100, 200, 100, 1, 100, 0, 0, 1],  // Right side bottom half
-        [100, 200, 0, 1, 100, 0, 0, 1, 100, 200, 100, 1],  // Right side top half
-        [0, 0, 100, 1, 0, 200, 100, 1, 0, 0, 0, 1],  // Left side bottom half
-        [0, 200, 0, 1, 0, 0, 0, 1, 0, 200, 100, 1],  // Left side top half
-        [100, 200, 0, 1, 100, 200, 100, 1, 0, 200, 100, 1],  // Bottom bottom half
-        [0, 200, 100, 1, 0, 200, 0, 1, 100, 200, 0, 1],  // Bottom top half
-        [100, 0, 0, 1, 100, 0, 100, 1, 0, 0, 100, 1],  // Top bottom half
-        [0, 0, 100, 1, 0, 0, 0, 1, 100, 0, 0, 1],  // Top top half     
-        // FLOOR
+    const worldLines = [
         [
-            -250,200,-250,1,
-            -250,200,150,1,
-            500,200,-250,1
+            -5000,0,0,1,
+            0,0,0,1,
+            0,0,0,1
         ],
         [
-            500,200,150,1,
-            500,200,-250,1,
-            -250,200,150,1
-        ,]
+            0,-5000,0,1,
+            0,0,0,1,
+            0,0,0,1
+        ],
+        [
+            0,0,-5000,1,
+            0,0,0,1,
+            0,0,0,1
+        ],
+        [
+            0,0,0,1,
+            5000,0,0,1,
+            5000,0,0,1
+        ],
+        [
+            0,0,0,1,
+            0,5000,0,1,
+            0,5000,0,1
+        ],
+        [
+            0,0,0,1,
+            0,0,5000,1,
+            0,0,5000,1
+        ]
+
+
+    ]
+    const _obj = [
+        [
+            // FORMAT
+            // X1 Y1 Z1 W1 X2 Y2 Z2 W2 X3 Y3 Z3 W3
+            // newest shape using 3 point triangle DUUUUHHHH
+            [0, 0, 0, 1, 0, 200, 0, 1, 100, 200, 0, 1],  // Top left
+            [100, 0, 0, 1, 0, 0, 0, 1, 100, 200, 0, 1],  // Top right
+            [100, 0, 100, 1, 0, 0, 100, 1, 100, 200, 100, 1],  // Bottom right
+            [0, 0, 100, 1, 0, 200, 100, 1, 100, 200, 100, 1],  // Bottom left
+            [100, 0, 100, 1, 100, 200, 100, 1, 100, 0, 0, 1],  // Right side bottom half
+            [100, 200, 0, 1, 100, 0, 0, 1, 100, 200, 100, 1],  // Right side top half
+            [0, 0, 100, 1, 0, 200, 100, 1, 0, 0, 0, 1],  // Left side bottom half
+            [0, 200, 0, 1, 0, 0, 0, 1, 0, 200, 100, 1],  // Left side top half
+            [100, 200, 0, 1, 100, 200, 100, 1, 0, 200, 100, 1],  // Bottom bottom half
+            [0, 200, 100, 1, 0, 200, 0, 1, 100, 200, 0, 1],  // Bottom top half
+            [100, 0, 0, 1, 100, 0, 100, 1, 0, 0, 100, 1],  // Top bottom half
+            [0, 0, 100, 1, 0, 0, 0, 1, 100, 0, 0, 1],  // Top top half     
+            // FLOOR
+            [
+                -250,200,-250,1,
+                -250,200,150,1,
+                500,200,-250,1
+            ],
+            [
+                500,200,150,1,
+                500,200,-250,1,
+                -250,200,150,1
+            ,]
+        ]
     ];
     
     function drawTriangles(triangles: number[][]) {
@@ -126,22 +167,44 @@ export default function TwoDEngine( { dark } : importStruc){
             let dis3X = (trans3[0] / (trans3[2])) * perspective + centerX;
             let dis3Y = (trans3[1] / (trans3[2])) * perspective + centerY;
 
+
+            let zAverage = (trans1[2] + trans2[2] + trans3[2]) / 3
+            drawQueue.push([dis1X,dis1Y,dis2X,dis2Y,dis3X,dis3Y, zAverage])
+        }
+        drawInOrder()
+    }
+    let drawQueue: number[][] = []
+    function drawInOrder(){
+        drawQueue.sort((a,b) => b[6] - a[6])
+        //console.log(drawQueue)
+        for (let i = 0; i < drawQueue.length; i++){
+            let dis1X = drawQueue[i][0]
+            let dis1Y = drawQueue[i][1]
+            let dis2X = drawQueue[i][2]
+            let dis2Y = drawQueue[i][3]
+            let dis3X = drawQueue[i][4]
+            let dis3Y = drawQueue[i][5]            
             drawLine(dis1X, dis1Y, dis2X, dis2Y);
             drawLine(dis2X, dis2Y, dis3X, dis3Y);
             drawLine(dis3X, dis3Y, dis1X, dis1Y);   
+            
+            drawColourTriangle(dis1X,dis1Y,dis2X,dis2Y,dis3X,dis3Y)       
         }
-    }
-    
-    function isTriangleVisible(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): boolean {
-        return isVisible(x1, y1) || isVisible(x2, y2) || isVisible(x3, y3);
-    }
-    function isVisible(x: number, y: number): boolean {
-        return x >= 0 && x <= __init__.width && y >= 0 && y <= __init__.height;
-    }
 
-
-    function draw(x1: number ,y1: number ,z1: number ,){
-        pixel(x1,y1)
+    }
+    function drawColourTriangle(x1: number ,y1: number ,x2: number ,y2: number ,x3: number ,y3: number ) {
+        const canvas = document.getElementById("Canvas") as HTMLCanvasElement;
+        const ctx = canvas.getContext("2d")
+        if (ctx){
+            ctx.fillStyle="#f4f"
+            ctx.beginPath();
+            ctx.moveTo(x1,y1);
+            ctx.lineTo(x2,y2);
+            ctx.lineTo(x3,y3);
+            //ctx.lineTo(x4,y4);
+            ctx.closePath();
+            ctx.fill();
+        } 
     }
     function pixel(x: number, y: number){
         const canvas = document.getElementById("Canvas") as HTMLCanvasElement;
