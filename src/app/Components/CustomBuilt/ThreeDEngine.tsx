@@ -341,8 +341,10 @@ export default function TwoDEngine( { dark } : importStruc){
         const newX = e.movementX;
         const newY = e.movementY;
     
-        // Update pitch and yaw based on mouse movement
-        pYang += newX * turnSpeed / 2;
+        // Update pitch and yaw based on mouse movement 
+        // TODO: Give max up and down angle so that we dont go into vertical circles and lose proper orientation
+        pXang = Math.max(newX * turnSpeed / 2, 90)
+        //pYang += newX * turnSpeed / 2;
         pXang += newY * turnSpeed / 2;
     }
     

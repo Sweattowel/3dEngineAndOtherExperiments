@@ -23,7 +23,7 @@ export default function TopBar({ dark, onThemeChange }: TopBarProps) {
       } flex justify-evenly items-center p-2 rounded`}
     >
       <section>
-        <h1 className="font-bold font-serif">Public API Test</h1>
+        <h1 className="font-bold font-serif">R&D</h1>
         <div
             className="flex items-center justify-evenly"
         >
