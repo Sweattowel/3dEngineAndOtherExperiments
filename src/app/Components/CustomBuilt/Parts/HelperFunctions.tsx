@@ -50,3 +50,31 @@ export function matmul(matrix: number[] | any[], vector: number[] | any[]) {
     }
     return result;
 }
+
+export function facingPlayer(triangle: number[][], playerPosition: number[]){
+    let [x1,y1,z1,w1] = triangle[0]
+    let [x2,y2,z2,w2] = triangle[1]
+    let [x3,y3,z3,w3] = triangle[2]
+    let [playerX,playerY, playerZ] = playerPosition
+    
+    let nx = y1 * z2 - z1 * y2
+    let ny = z1 * x2 - x1 * z2
+    let nz = x1 * y2 - y1 * x2
+    
+    return (
+        nx * (x1 - playerX) +
+        ny * (y1 - playerY) +
+        nz * (z1 - playerZ) < 0.0
+    )
+    
+}
+function dotProduct(A: number[], B: number[]){
+    let [aX, aY, aZ] = A
+    let [bX, bY, bZ] = B
+    
+    return aX * bX + aY * bY + aZ * bZ
+}
+
+function crossProduct(a: number, b: number, A: number, B: number) {
+    return 1 / Math.sin((a * b) / (A * B));
+}

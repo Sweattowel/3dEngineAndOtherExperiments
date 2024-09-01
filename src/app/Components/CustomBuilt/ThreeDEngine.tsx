@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import {translate, rotate_x, rotate_y, rotate_z, scale, matmul} from './Parts/HelperFunctions'
+import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, facingPlayer} from './Parts/HelperFunctions'
 import { objects, WORLD } from "./Data/ShapeFolder"
 import {clipTriangleToNearPlane} from "./Parts/ClipAndInter"
 
@@ -71,16 +71,28 @@ export default function TwoDEngine( { dark } : importStruc){
                 const i1 = face[i] - 1;    // Convert 1-based index to 0-based
                 const i2 = face[i + 1] - 1;
                 const i3 = face[i + 2] - 1;
-    
+                const faceIndex = faceCoordinates.indexOf(face)
                 // Access vertices from triangleCoordinates
                 const [x1, y1, z1, w1] = triangleCoordinates[i1];
                 const [x2, y2, z2, w2] = triangleCoordinates[i2];
                 const [x3, y3, z3, w3] = triangleCoordinates[i3];
     
-                // Apply the transformations
+                // Apply transformations (rotation, translation)
                 const p1 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x1 - pxyz[0], y1 - pxyz[1], z1 - pxyz[2], w1])));
                 const p2 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x2 - pxyz[0], y2 - pxyz[1], z2 - pxyz[2], w2])));
                 const p3 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x3 - pxyz[0], y3 - pxyz[1], z3 - pxyz[2], w3])));
+    
+                // Check if the triangle is facing the player
+                if (faceIndex % 2 !== 0){
+                    if (!facingPlayer([p1, p2, p3], pxyz)) {
+                        continue; 
+                    }                    
+                } else {
+                    if (!facingPlayer([p3, p2, p1], pxyz)) {
+                        continue; 
+                    }                  
+                }
+
     
                 // Clip the triangles to the near plane
                 const clippedTriangles = clipTriangleToNearPlane([p1, p2, p3], nearPlane);
@@ -106,6 +118,7 @@ export default function TwoDEngine( { dark } : importStruc){
         }
         drawInOrder();
     }
+    
     
     
         
@@ -205,71 +218,77 @@ export default function TwoDEngine( { dark } : importStruc){
 
     function controlLogic() {
         //playerSpeed = playerSpeed + factor
-        if (up && !turning && !strafing) {
-            // Move forward in the direction the player is facing
-            pxyz[0] += Math.sin(pYang) * Math.cos(pXang) * playerSpeed;
-            //pxyz[1] -= Math.sin(pXang) * playerSpeed;  // Vertical movement
-            pxyz[2] += Math.cos(pYang) * Math.cos(pXang) * playerSpeed;
+        if(!paused){
+            if (up && !turning && !strafing) {
+                // Move forward in the direction the player is facing
+                pxyz[0] += Math.sin(pYang) * Math.cos(pXang) * playerSpeed;
+                //pxyz[1] -= Math.sin(pXang) * playerSpeed;  // Vertical movement
+                pxyz[2] += Math.cos(pYang) * Math.cos(pXang) * playerSpeed;
+            }
+            if (down && !turning && !strafing) {
+                // Move backward in the direction the player is facing
+                pxyz[0] -= Math.sin(pYang) * Math.cos(pXang) * playerSpeed;
+                //pxyz[1] += Math.sin(pXang) * playerSpeed;  // Vertical movement
+                pxyz[2] -= Math.cos(pYang) * Math.cos(pXang) * playerSpeed;
+            }
+            if (left && !turning && !strafing) {
+                // Strafe left
+                pxyz[0] -= Math.cos(pYang) * playerSpeed;
+                pxyz[2] += Math.sin(pYang) * playerSpeed;
+            }
+            if (right && !turning && !strafing) {
+                // Strafe right
+                pxyz[0] += Math.cos(pYang) * playerSpeed;
+                pxyz[2] -= Math.sin(pYang) * playerSpeed;
+            }
+        
+            if (up && !turning && strafing) {
+                //pxyz[0] += Math.sin(pYang) * playerSpeed
+                pxyz[1] -= playerSpeed
+                //pxyz[2] -= Math.sin(pYang) * playerSpeed
+            }
+            if (down && !turning && strafing) {
+                //pxyz[0] -= Math.sin(pYang) * playerSpeed
+                pxyz[1] += playerSpeed
+                //pxyz[2] += Math.sin(pYang) * playerSpeed
+            }
+        
+            if (up && turning) {
+                pXang -= turnSpeed;
+                pXang = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pXang));  // Clamp pitch
+            }
+            if (down && turning) {
+                pXang += turnSpeed;
+                pXang = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pXang));  // Clamp pitch
+            }
+            if (right && turning) {
+                pYang += turnSpeed;
+                if (pYang >= 2 * Math.PI) pYang -= 2 * Math.PI;  // Wrap yaw
+            }
+            if (left && turning) {
+                pYang -= turnSpeed;
+                if (pYang < 0) pYang += 2 * Math.PI;  // Wrap yaw
+            }            
         }
-        if (down && !turning && !strafing) {
-            // Move backward in the direction the player is facing
-            pxyz[0] -= Math.sin(pYang) * Math.cos(pXang) * playerSpeed;
-            //pxyz[1] += Math.sin(pXang) * playerSpeed;  // Vertical movement
-            pxyz[2] -= Math.cos(pYang) * Math.cos(pXang) * playerSpeed;
-        }
-        if (left && !turning && !strafing) {
-            // Strafe left
-            pxyz[0] -= Math.cos(pYang) * playerSpeed;
-            pxyz[2] += Math.sin(pYang) * playerSpeed;
-        }
-        if (right && !turning && !strafing) {
-            // Strafe right
-            pxyz[0] += Math.cos(pYang) * playerSpeed;
-            pxyz[2] -= Math.sin(pYang) * playerSpeed;
-        }
-    
-        if (up && !turning && strafing) {
-            //pxyz[0] += Math.sin(pYang) * playerSpeed
-            pxyz[1] -= playerSpeed
-            //pxyz[2] -= Math.sin(pYang) * playerSpeed
-        }
-        if (down && !turning && strafing) {
-            //pxyz[0] -= Math.sin(pYang) * playerSpeed
-            pxyz[1] += playerSpeed
-            //pxyz[2] += Math.sin(pYang) * playerSpeed
-        }
-    
-        if (up && turning) {
-            pXang -= turnSpeed;
-            pXang = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pXang));  // Clamp pitch
-        }
-        if (down && turning) {
-            pXang += turnSpeed;
-            pXang = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pXang));  // Clamp pitch
-        }
-        if (right && turning) {
-            pYang += turnSpeed;
-            if (pYang >= 2 * Math.PI) pYang -= 2 * Math.PI;  // Wrap yaw
-        }
-        if (left && turning) {
-            pYang -= turnSpeed;
-            if (pYang < 0) pYang += 2 * Math.PI;  // Wrap yaw
-        }
+
     }
     let prevMouseX = 0;
     let prevMouseY = 0;
 
     function pointerMove(e: PointerEvent) {
-        const newX = e.movementX;
-        const newY = e.movementY;
-    
-        // Update pitch and yaw based on mouse movement 
-        // TODO: Give max up and down angle so that we dont go into vertical circles and lose proper orientation
-        //pXang = Math.max(newX * turnSpeed / 2, 90)
-        pYang += newX * turnSpeed / 2 //+ prevMouseY;
-        pXang += newY * turnSpeed / 2 //+ prevMouseX;
-        prevMouseX = newX;
-        prevMouseY = newY;
+        if (!paused){
+            const newX = e.movementX;
+            const newY = e.movementY;
+        
+            // Update pitch and yaw based on mouse movement 
+            // TODO: Give max up and down angle so that we dont go into vertical circles and lose proper orientation
+            //pXang = Math.max(newX * turnSpeed / 2, 90)
+            pYang += newX * turnSpeed / 2 //+ prevMouseY;
+            pXang += newY * turnSpeed / 2 //+ prevMouseX;
+            prevMouseX = newX;
+            prevMouseY = newY;            
+        }
+
     }
     
     return(        
