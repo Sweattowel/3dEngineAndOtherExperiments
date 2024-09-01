@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import {translate, rotate_x, rotate_y, rotate_z, scale, matmul} from './Parts/HelperFunctions'
-import { randomShapes } from "./Data/ShapeFolder"
+import { objects } from "./Data/ShapeFolder"
+import {clipTriangleToNearPlane} from "./Parts/ClipAndInter"
 
 interface importStruc {
     dark : boolean
@@ -22,16 +23,19 @@ export default function TwoDEngine( { dark } : importStruc){
     let pxyz : any = [
         0,
         0,
-        -100,
+        5,
     ]
     let pYang = 0.0;
     let pXang = 0.0;
     let pZang = 0.0
 
+    let paused = true;
+
     useEffect(() => {
         const canvas = document.getElementById("Canvas") as HTMLCanvasElement;
-        setInterval(run, 1000 / __init__.fps)
-        //setInterval(() => console.log(pxyz), 1000 / 1)
+        setInterval(gameLoop, 1000 / __init__.fps)
+
+        // Add control event listeners
         window.addEventListener("keydown", keyDown);
         window.addEventListener("keyup", keyUp);
         window.addEventListener("pointermove", (e) => pointerMove(e))
@@ -39,166 +43,73 @@ export default function TwoDEngine( { dark } : importStruc){
             await canvas.requestPointerLock();
           });
     },[])
-    function run(){
+
+    function gameLoop(){
         drawQueue = []
         clearRect()
         controlLogic();
-        drawTriangles(worldLines)
-        for (const obj of _obj){
-            drawTriangles(obj);
+        //for (const obj of _obj){
+        //    drawTriangles(obj);
+        //}
+        if (!paused){
+            drawTriangles(objects[0].triangleCoordinates, objects[0].faceCoordinates)
         }
         
-        drawTriangles(randomShapes)
         
-        pixel(__init__.width / 2, __init__.height / 2)
+        
     }
-
-    const worldLines = [
-        [
-            -5000,0,0,1,
-            0,0,0,1,
-            0,0,0,1
-        ],
-        [
-            0,-5000,0,1,
-            0,0,0,1,
-            0,0,0,1
-        ],
-        [
-            0,0,-5000,1,
-            0,0,0,1,
-            0,0,0,1
-        ],
-        [
-            0,0,0,1,
-            5000,0,0,1,
-            5000,0,0,1
-        ],
-        [
-            0,0,0,1,
-            0,5000,0,1,
-            0,5000,0,1
-        ],
-        [
-            0,0,0,1,
-            0,0,5000,1,
-            0,0,5000,1
-        ]
-
-
-    ]
-    const _obj = [
-        [
-            // FORMAT
-            // X1 Y1 Z1 W1 X2 Y2 Z2 W2 X3 Y3 Z3 W3
-            // newest shape using 3 point triangle DUUUUHHHH
-            [0, 0, 0, 1, 0, 200, 0, 1, 100, 200, 0, 1],  // Top left
-            [100, 0, 0, 1, 0, 0, 0, 1, 100, 200, 0, 1],  // Top right
-            [100, 0, 100, 1, 0, 0, 100, 1, 100, 200, 100, 1],  // Bottom right
-            [0, 0, 100, 1, 0, 200, 100, 1, 100, 200, 100, 1],  // Bottom left
-            [100, 0, 100, 1, 100, 200, 100, 1, 100, 0, 0, 1],  // Right side bottom half
-            [100, 200, 0, 1, 100, 0, 0, 1, 100, 200, 100, 1],  // Right side top half
-            [0, 0, 100, 1, 0, 200, 100, 1, 0, 0, 0, 1],  // Left side bottom half
-            [0, 200, 0, 1, 0, 0, 0, 1, 0, 200, 100, 1],  // Left side top half
-            [100, 200, 0, 1, 100, 200, 100, 1, 0, 200, 100, 1],  // Bottom bottom half
-            [0, 200, 100, 1, 0, 200, 0, 1, 100, 200, 0, 1],  // Bottom top half
-            [100, 0, 0, 1, 100, 0, 100, 1, 0, 0, 100, 1],  // Top bottom half
-            [0, 0, 100, 1, 0, 0, 0, 1, 100, 0, 0, 1],  // Top top half     
-            // FLOOR
-            [
-                -250,200,-250,1,
-                -250,200,150,1,
-                500,200,-250,1
-            ],
-            [
-                500,200,150,1,
-                500,200,-250,1,
-                -250,200,150,1
-            ,]
-        ]
-    ];
     
-    function drawTriangles(triangles: number[][]) {
+    function drawTriangles(triangleCoordinates: number[][], faceCoordinates: number[][]) {
         const centerX = 400, centerY = 400;
         const perspective = 400;
-        const nearPlane = 0.1;  // Small positive value as near plane distance
+        const nearPlane = 0.1;
     
-        for (const triangle of triangles) {
-            let [x1, y1, z1, w1, x2, y2, z2, w2, x3, y3, z3, w3] = triangle;
+        for (const face of faceCoordinates) {
+            // Process each face which is a series of indices
+            for (let i = 0; i < face.length; i += 4) {
+                const i1 = face[i] - 1;    // Convert 1-based index to 0-based
+                const i2 = face[i + 1] - 1;
+                const i3 = face[i + 2] - 1;
     
-            // Step 1 Adjust rotation of triangles to match player angle
-            let p1 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x1 - pxyz[0], y1 - pxyz[1], z1 - pxyz[2], w1])));
-            let p2 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x2 - pxyz[0], y2 - pxyz[1], z2 - pxyz[2], w2])));
-            let p3 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x3 - pxyz[0], y3 - pxyz[1], z3 - pxyz[2], w3])));
+                // Access vertices from triangleCoordinates
+                const [x1, y1, z1, w1] = triangleCoordinates[i1];
+                const [x2, y2, z2, w2] = triangleCoordinates[i2];
+                const [x3, y3, z3, w3] = triangleCoordinates[i3];
     
-            // Step two pass each triangles points intor clipping function with near plane to adjust based on player screen i.e. if triangle is cut off cut triangle into pieces
-            const clippedTriangles = clipTriangleToNearPlane([p1, p2, p3], nearPlane);
+                // Apply the transformations
+                const p1 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x1 - pxyz[0], y1 - pxyz[1], z1 - pxyz[2], w1])));
+                const p2 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x2 - pxyz[0], y2 - pxyz[1], z2 - pxyz[2], w2])));
+                const p3 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x3 - pxyz[0], y3 - pxyz[1], z3 - pxyz[2], w3])));
     
-            for (const clippedTriangle of clippedTriangles) {
-                const [trans1, trans2, trans3] = clippedTriangle;
+                // Clip the triangles to the near plane
+                const clippedTriangles = clipTriangleToNearPlane([p1, p2, p3], nearPlane);
     
-                // Perspective projection
-                let dis1X = (trans1[0] / trans1[2]) * perspective + centerX;
-                let dis1Y = (trans1[1] / trans1[2]) * perspective + centerY;
+                for (const clippedTriangle of clippedTriangles) {
+                    const [trans1, trans2, trans3] = clippedTriangle;
     
-                let dis2X = (trans2[0] / trans2[2]) * perspective + centerX;
-                let dis2Y = (trans2[1] / trans2[2]) * perspective + centerY;
+                    // Project the points to 2D space
+                    const dis1X = (trans1[0] / trans1[2]) * perspective + centerX;
+                    const dis1Y = (trans1[1] / trans1[2]) * perspective + centerY;
     
-                let dis3X = (trans3[0] / trans3[2]) * perspective + centerX;
-                let dis3Y = (trans3[1] / trans3[2]) * perspective + centerY;
+                    const dis2X = (trans2[0] / trans2[2]) * perspective + centerX;
+                    const dis2Y = (trans2[1] / trans2[2]) * perspective + centerY;
     
-                // Calculate depth for sorting
-                let zAverage = (trans1[2] + trans2[2] + trans3[2]) / 3;
-                drawQueue.push([dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage]);
+                    const dis3X = (trans3[0] / trans3[2]) * perspective + centerX;
+                    const dis3Y = (trans3[1] / trans3[2]) * perspective + centerY;
+    
+                    // Calculate average Z depth for sorting
+                    const zAverage = (trans1[2] + trans2[2] + trans3[2]) / 3;
+                    drawQueue.push([dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage]);
+                }
             }
         }
         drawInOrder();
     }
     
-    function clipTriangleToNearPlane(triangle: number[][], nearPlane: number) {
-        let inside = [], outside = [];
-        for (let i = 0; i < 3; i++) {
-            // is triangle z value close? close is defined by nearPlane
-            if (triangle[i][2] >= nearPlane) {
-                inside.push(triangle[i]);
-            } else {
-                outside.push(triangle[i]);
-            }
-        }
+    
         
-        if (inside.length === 3) {
-            return [triangle];  // No clipping needed
-        }
-        if (inside.length === 0) {
-            return [];  // Fully clipped
-        }
     
-        let newTriangles = [];
-        // one vertice is close? clip to triangle
-        if (inside.length === 1) {
-            let newVertex1 = interpolateToNearPlane(inside[0], outside[0], nearPlane);
-            let newVertex2 = interpolateToNearPlane(inside[0], outside[1], nearPlane);
-            newTriangles.push([inside[0], newVertex1, newVertex2]);
-        } else if (inside.length === 2) {
-            // two vertice is close? clip to quad i.e. two triangles as rectangle
-            let newVertex1 = interpolateToNearPlane(inside[0], outside[0], nearPlane);
-            let newVertex2 = interpolateToNearPlane(inside[1], outside[0], nearPlane);
-            newTriangles.push([inside[0], inside[1], newVertex1]);
-            newTriangles.push([inside[1], newVertex1, newVertex2]);
-        }
     
-        return newTriangles;
-    }
-    
-    function interpolateToNearPlane(inside: number[], outside: number[], nearPlane: number) {
-        const t = (nearPlane - inside[2]) / (outside[2] - inside[2]);
-        return [
-            inside[0] + t * (outside[0] - inside[0]),
-            inside[1] + t * (outside[1] - inside[1]),
-            nearPlane,
-            inside[3] + t * (outside[3] - inside[3])
-        ];
-    }
     let drawQueue: number[][] = []
     function drawInOrder(){
         drawQueue.sort((a,b) => b[6] - a[6])
@@ -228,15 +139,7 @@ export default function TwoDEngine( { dark } : importStruc){
             ctx.fill();
         } 
     }
-    function pixel(x: number, y: number){
-        const canvas = document.getElementById("Canvas") as HTMLCanvasElement;
-        const ctx = canvas.getContext("2d")
-        if (ctx){
-            ctx?.fillRect(x,y,__init__.scale,__init__.scale)
 
-        }
-
-    }
     function drawLine(x1: number,y1: number,x2: number,y2 : number){
         //console.log(x1,y1,x2,y2)
         const canvas = document.getElementById("Canvas") as HTMLCanvasElement;
@@ -250,6 +153,14 @@ export default function TwoDEngine( { dark } : importStruc){
             ctx?.closePath();            
         }
     }
+    function pixel(x: number, y: number){
+        const canvas = document.getElementById("Canvas") as HTMLCanvasElement;
+        const ctx = canvas.getContext("2d")
+        if (ctx){
+            ctx?.fillRect(x,y,__init__.scale,__init__.scale)
+
+        }
+    }    
     function clearRect(){
         const canvas = document.getElementById("Canvas") as HTMLCanvasElement;
         const ctx = canvas.getContext("2d")
@@ -268,6 +179,7 @@ export default function TwoDEngine( { dark } : importStruc){
             case 40: down = true; break;
             case 77: turning = true; break;
             case 78: strafing = true; break;
+            case 80: paused = !paused; break;
         }
     }
 
@@ -283,7 +195,7 @@ export default function TwoDEngine( { dark } : importStruc){
     }
     let turnSpeed = 0.03;
     function controlLogic() {
-        let playerSpeed = 4;
+        let playerSpeed = 0.03;
         //let turnSpeed = 0.03;
     
         if (up && !turning && !strafing) {
@@ -337,15 +249,20 @@ export default function TwoDEngine( { dark } : importStruc){
             if (pYang < 0) pYang += 2 * Math.PI;  // Wrap yaw
         }
     }
+    let prevMouseX = 0;
+    let prevMouseY = 0;
+
     function pointerMove(e: PointerEvent) {
         const newX = e.movementX;
         const newY = e.movementY;
     
         // Update pitch and yaw based on mouse movement 
         // TODO: Give max up and down angle so that we dont go into vertical circles and lose proper orientation
-        pXang = Math.max(newX * turnSpeed / 2, 90)
-        //pYang += newX * turnSpeed / 2;
-        pXang += newY * turnSpeed / 2;
+        //pXang = Math.max(newX * turnSpeed / 2, 90)
+        pYang += newX * turnSpeed / 2 //+ prevMouseY;
+        pXang += newY * turnSpeed / 2 //+ prevMouseX;
+        prevMouseX = newX;
+        prevMouseY = newY;
     }
     
     return(        
