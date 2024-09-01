@@ -1,5 +1,5 @@
 def convert():
-    with open(r"src\app\Components\CustomBuilt\Data\ToUse\teapot.obj", 'r') as file:
+    with open(r"src\app\Components\CustomBuilt\Data\ToUse\world.obj", 'r') as file:
         importedData = file.readlines()
 
     vertices = []

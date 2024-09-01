@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import {translate, rotate_x, rotate_y, rotate_z, scale, matmul} from './Parts/HelperFunctions'
-import { objects } from "./Data/ShapeFolder"
+import { objects, WORLD } from "./Data/ShapeFolder"
 import {clipTriangleToNearPlane} from "./Parts/ClipAndInter"
 
 interface importStruc {
@@ -53,6 +53,7 @@ export default function TwoDEngine( { dark } : importStruc){
         //}
         if (!paused){
             drawTriangles(objects[0].triangleCoordinates, objects[0].faceCoordinates)
+            drawTriangles(WORLD[0].triangleCoordinates, WORLD[0].faceCoordinates)
         }
         
         
@@ -171,6 +172,7 @@ export default function TwoDEngine( { dark } : importStruc){
         }
 
     }
+
     function keyDown(evt: KeyboardEvent) {
         switch (evt.keyCode) {
             case 37: left = true; break;
@@ -179,7 +181,11 @@ export default function TwoDEngine( { dark } : importStruc){
             case 40: down = true; break;
             case 77: turning = true; break;
             case 78: strafing = true; break;
+            case 16: playerSpeed = 0.15; break;
+
+            // toggles
             case 80: paused = !paused; break;
+        
         }
     }
 
@@ -191,13 +197,14 @@ export default function TwoDEngine( { dark } : importStruc){
             case 40: down = false; break;
             case 77: turning = false; break;
             case 78: strafing = false; break;
+            case 16: playerSpeed = 0.03; break;
         }
     }
     let turnSpeed = 0.03;
+    let playerSpeed = 0.03;
+
     function controlLogic() {
-        let playerSpeed = 0.03;
-        //let turnSpeed = 0.03;
-    
+        //playerSpeed = playerSpeed + factor
         if (up && !turning && !strafing) {
             // Move forward in the direction the player is facing
             pxyz[0] += Math.sin(pYang) * Math.cos(pXang) * playerSpeed;
