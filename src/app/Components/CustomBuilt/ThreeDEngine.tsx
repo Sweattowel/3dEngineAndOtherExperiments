@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, facingPlayer} from './Parts/HelperFunctions'
+import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct} from './Parts/HelperFunctions'
 import { objects, WORLD } from "./Data/ShapeFolder"
 import {clipTriangleToNearPlane} from "./Parts/ClipAndInter"
 
@@ -54,10 +54,8 @@ export default function TwoDEngine( { dark } : importStruc){
         if (!paused){
             drawTriangles(objects[0].triangleCoordinates, objects[0].faceCoordinates)
             drawTriangles(WORLD[0].triangleCoordinates, WORLD[0].faceCoordinates)
+            
         }
-        
-        
-        
     }
     
     function drawTriangles(triangleCoordinates: number[][], faceCoordinates: number[][]) {
@@ -71,7 +69,7 @@ export default function TwoDEngine( { dark } : importStruc){
                 const i1 = face[i] - 1;    // Convert 1-based index to 0-based
                 const i2 = face[i + 1] - 1;
                 const i3 = face[i + 2] - 1;
-                const faceIndex = faceCoordinates.indexOf(face)
+                
                 // Access vertices from triangleCoordinates
                 const [x1, y1, z1, w1] = triangleCoordinates[i1];
                 const [x2, y2, z2, w2] = triangleCoordinates[i2];
@@ -81,17 +79,12 @@ export default function TwoDEngine( { dark } : importStruc){
                 const p1 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x1 - pxyz[0], y1 - pxyz[1], z1 - pxyz[2], w1])));
                 const p2 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x2 - pxyz[0], y2 - pxyz[1], z2 - pxyz[2], w2])));
                 const p3 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x3 - pxyz[0], y3 - pxyz[1], z3 - pxyz[2], w3])));
-    
+                
                 // Check if the triangle is facing the player
-                if (faceIndex % 2 !== 0){
-                    if (!facingPlayer([p1, p2, p3], pxyz)) {
-                        continue; 
-                    }                    
-                } else {
-                    if (!facingPlayer([p3, p2, p1], pxyz)) {
-                        continue; 
-                    }                  
-                }
+                if (crossProduct([p1, p2, p3], pxyz) > 0.0) {
+                    continue; 
+                }                    
+            
 
     
                 // Clip the triangles to the near plane
@@ -120,8 +113,6 @@ export default function TwoDEngine( { dark } : importStruc){
     }
     
     
-    
-        
     
     
     let drawQueue: number[][] = []
