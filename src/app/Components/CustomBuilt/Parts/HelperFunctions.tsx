@@ -51,11 +51,10 @@ export function matmul(matrix: number[] | any[], vector: number[] | any[]) {
     return result;
 }
 
-export function crossProduct(triangle: number[][], playerPosition: number[]) {
+export function crossProduct(triangle: number[][]) {
     let [x1, y1, z1, w1] = triangle[0];
     let [x2, y2, z2, w2] = triangle[1];
     let [x3, y3, z3, w3] = triangle[2];
-    let [playerX, playerY, playerZ] = playerPosition;
     
     let edge1 = [x2 - x1, y2 - y1, z2 - z1];
     let edge2 = [x3 - x1, y3 - y1, z3 - z1];
@@ -65,7 +64,31 @@ export function crossProduct(triangle: number[][], playerPosition: number[]) {
     let Ny = -((x2 - x1) * (z3 - z1) - (z2 - z1) * (x3 - x1));
     let Nz = ((x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1));
     // Calculate the dot product of the normal with the vector from the player to the triangle DO NOT INCLUDE PLAYER X Y AND Z IT BROKEN IT BROKEN IT BROKEN IT BROKEN IT BROKEN
-    return Nx * (x1) +
-           Ny * (y1) +
-           Nz * (z1);
+    return [Nx * (x1), Ny * (y1), Nz * (z1)];
+}
+
+
+export function dotProduct(A: number[], B: number[]){
+    let [aX, aY, aZ] = A
+    let [bX, bY, bZ] = B
+    
+    return aX * bX + aY * bY + aZ * bZ
+}
+
+export function angleBetween(vectorA: number[], vectorB: number[]): number {
+    vectorA = normalize(vectorA)
+    vectorB = normalize(vectorB)
+    const dot = dotProduct(vectorA, vectorB);
+    const magnitudeA = Math.sqrt(vectorA[0] ** 2 + vectorA[1] ** 2 + vectorA[2] ** 2);
+    const magnitudeB = Math.sqrt(vectorB[0] ** 2 + vectorB[1] ** 2 + vectorB[2] ** 2);
+
+    // Normalize the vectors within the cosine function
+    const cosTheta = dot / (magnitudeA * magnitudeB);
+    const angle = Math.acos(Math.max(-1, Math.min(1, cosTheta))); // Clamp to [-1, 1] to avoid NaN errors
+
+    return angle;
+}
+function normalize(vector: number[]): number[] {
+    const magnitude = Math.sqrt(vector[0] ** 2 + vector[1] ** 2 + vector[2] ** 2);
+    return vector.map(v => v / magnitude);
 }

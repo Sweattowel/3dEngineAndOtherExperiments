@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct} from './Parts/HelperFunctions'
+import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, angleBetween} from './Parts/HelperFunctions'
 import { objects, WORLD } from "./Data/ShapeFolder"
 import {clipTriangleToNearPlane} from "./Parts/ClipAndInter"
 
@@ -57,7 +57,8 @@ export default function TwoDEngine( { dark } : importStruc){
             
         }
     }
-    
+   
+
     function drawTriangles(triangleCoordinates: number[][], faceCoordinates: number[][]) {
         const centerX = 400, centerY = 400;
         const perspective = 400;
@@ -66,7 +67,7 @@ export default function TwoDEngine( { dark } : importStruc){
         for (const face of faceCoordinates) {
             // Process each face which is a series of indices
             for (let i = 0; i < face.length; i += 4) {
-                const i1 = face[i] - 1;    // Convert 1-based index to 0-based
+                const i1 = face[i] - 1; 
                 const i2 = face[i + 1] - 1;
                 const i3 = face[i + 2] - 1;
                 
@@ -82,11 +83,14 @@ export default function TwoDEngine( { dark } : importStruc){
                 
                 let avgZ = (p1[2] + p2[2] + p3[2]) / 3;
                 // Check if the triangle is facing the player
-                if (crossProduct([p1, p2, p3], pxyz) < 0.0 || avgZ > 50 ) {
+                let triangleNormal = crossProduct([p1, p2, p3])
+                
+                if ((triangleNormal[0] + triangleNormal[1] + triangleNormal[2]) < 0.0 || avgZ > 50 ) {
                     continue; 
                 }                    
-            
-
+                let light_direction = [0.0,-10.0,-1.0]
+                let lightTriangleNormal = angleBetween(triangleNormal, light_direction)
+                //console.log(lightTriangleNormal)
     
                 // Clip the triangles to the near plane
                 const clippedTriangles = clipTriangleToNearPlane([p1, p2, p3], nearPlane);
@@ -106,7 +110,7 @@ export default function TwoDEngine( { dark } : importStruc){
     
                     // Calculate average Z depth for sorting
                     const zAverage = (trans1[2] + trans2[2] + trans3[2]) / 3;
-                    drawQueue.push([dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage]);
+                    drawQueue.push([dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage, lightTriangleNormal]);
                 }
             }
         }
@@ -121,30 +125,41 @@ export default function TwoDEngine( { dark } : importStruc){
         drawQueue.sort((a,b) => b[6] - a[6])
         //console.log(drawQueue)
         for (let i = 0; i < drawQueue.length; i++){
-            let [dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y] = drawQueue[i];           
+            let [dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, colourMulti] = drawQueue[i];           
             drawLine(dis1X, dis1Y, dis2X, dis2Y);
             drawLine(dis2X, dis2Y, dis3X, dis3Y);
             drawLine(dis3X, dis3Y, dis1X, dis1Y);   
             
-            drawColourTriangle(dis1X,dis1Y,dis2X,dis2Y,dis3X,dis3Y)       
+            drawColourTriangle(dis1X,dis1Y,dis2X,dis2Y,dis3X,dis3Y, colourMulti)       
         }
     }
 
-    function drawColourTriangle(x1: number ,y1: number ,x2: number ,y2: number ,x3: number ,y3: number ) {
+    function drawColourTriangle(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, colourMulti: number) {
         const canvas = document.getElementById("Canvas") as HTMLCanvasElement;
-        const ctx = canvas.getContext("2d")
-        if (ctx){
-
-            ctx.fillStyle="#f4f"
+        const ctx = canvas.getContext("2d");
+    
+        if (ctx) {
+            // Ensure colourMulti is within the range 0 to 1
+            colourMulti = Math.min(1, Math.max(0, colourMulti));
+            
+            // Calculate color components
+            const A = Math.floor(Math.min(255 * colourMulti));
+            const B = Math.floor(Math.min(192 * colourMulti));
+            const C = Math.floor(Math.min(203 * colourMulti));
+            
+            // Set the fill style
+            ctx.fillStyle = `rgb(${A}, ${B}, ${C})`;
+    
+            // Draw the triangle
             ctx.beginPath();
-            ctx.moveTo(x1,y1);
-            ctx.lineTo(x2,y2);
-            ctx.lineTo(x3,y3);
-            //ctx.lineTo(x4,y4);
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineTo(x3, y3);
             ctx.closePath();
             ctx.fill();
-        } 
+        }
     }
+    
 
     function drawLine(x1: number,y1: number,x2: number,y2 : number){
         //console.log(x1,y1,x2,y2)
