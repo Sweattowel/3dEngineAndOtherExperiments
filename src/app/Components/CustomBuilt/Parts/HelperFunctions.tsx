@@ -64,17 +64,8 @@ export function crossProduct(triangle: number[][], playerPosition: number[]) {
     let Nx = ((y2 - y1) * (z3 - z1) - (z2 - z1) * (y3 - y1));
     let Ny = -((x2 - x1) * (z3 - z1) - (z2 - z1) * (x3 - x1));
     let Nz = ((x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1));
-    // Calculate the dot product of the normal with the vector from the player to the triangle
+    // Calculate the dot product of the normal with the vector from the player to the triangle DO NOT INCLUDE PLAYER X Y AND Z IT BROKEN IT BROKEN IT BROKEN IT BROKEN IT BROKEN
     return Nx * (x1) +
            Ny * (y1) +
            Nz * (z1);
 }
-
-
-function dotProduct(A: number[], B: number[]){
-    let [aX, aY, aZ] = A
-    let [bX, bY, bZ] = B
-    
-    return aX * bX + aY * bY + aZ * bZ
-}
-

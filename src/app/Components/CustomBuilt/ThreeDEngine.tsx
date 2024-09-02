@@ -76,12 +76,13 @@ export default function TwoDEngine( { dark } : importStruc){
                 const [x3, y3, z3, w3] = triangleCoordinates[i3];
     
                 // Apply transformations (rotation, translation)
-                const p1 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x1 - pxyz[0], y1 - pxyz[1], z1 - pxyz[2], w1])));
-                const p2 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x2 - pxyz[0], y2 - pxyz[1], z2 - pxyz[2], w2])));
-                const p3 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x3 - pxyz[0], y3 - pxyz[1], z3 - pxyz[2], w3])));
+                const p1 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x1 - pxyz[0], y1 - (y1 * 2) - pxyz[1], z1 - pxyz[2], w1])));
+                const p2 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x2 - pxyz[0], y2 - (y2 * 2) - pxyz[1], z2 - pxyz[2], w2])));
+                const p3 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x3 - pxyz[0], y3 - (y3 * 2) - pxyz[1], z3 - pxyz[2], w3])));
                 
+                let avgZ = (p1[2] + p2[2] + p3[2]) / 3;
                 // Check if the triangle is facing the player
-                if (crossProduct([p1, p2, p3], pxyz) > 0.0) {
+                if (crossProduct([p1, p2, p3], pxyz) < 0.0 || avgZ > 50 ) {
                     continue; 
                 }                    
             
@@ -185,7 +186,7 @@ export default function TwoDEngine( { dark } : importStruc){
             case 40: down = true; break;
             case 77: turning = true; break;
             case 78: strafing = true; break;
-            case 16: playerSpeed = 0.15; break;
+            case 16: playerSpeed = 0.20; break;
 
             // toggles
             case 80: paused = !paused; break;
