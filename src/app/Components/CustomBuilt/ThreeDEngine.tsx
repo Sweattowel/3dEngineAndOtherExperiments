@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, cosineSimilarity, intersecting} from './Parts/HelperFunctions'
+import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, cosineSimilarity, GetDistanceX} from './Parts/HelperFunctions'
 import { objects, WORLD } from "./Data/ShapeFolder"
 import {clipTriangleToNearPlane} from "./Parts/ClipAndInter"
 
@@ -65,15 +65,18 @@ export default function TwoDEngine( { dark } : importStruc){
     function gameLoop(){
         drawQueue = []
         close = []
+        
         clearRect()
         controlLogic();
         //for (const obj of _obj){
         //    drawTriangles(obj);
         //}
         if (!paused){
+
             for (const _obj of toDraw){
                 drawTriangles(_obj[0], _obj[1])
             }
+            console.log(close)
         }
         
     }
@@ -104,18 +107,34 @@ export default function TwoDEngine( { dark } : importStruc){
                 const p3 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x3 - pxyz[0], y3 - (y3 * 2) - pxyz[1], z3 - pxyz[2], w3])));
                 
                 let avgZ = (p1[2] + p2[2] + p3[2]) / 3;
+                let avgY = (p1[1] + p2[1] + p3[1]) / 3;
                 // Check if the triangle is facing the player
                 let triangleNormal = crossProduct([p1, p2, p3])
+                let distance1 = GetDistanceX([x1,y1,z1], pxyz)
+                let distance2 = GetDistanceX([x2,y2,z2], pxyz)
+                let distance3 = GetDistanceX([x3,y3,z3], pxyz)
+                let centroid = [
+                    (x1 + x2 + x3) / 3,
+                    (y1 + y2 + y3) / 3,
+                    (z1 + z2 + z3) / 3,
+                ];
+    
+                // Calculate distance from the player to the centroid
+                let centroidDistance = GetDistanceX(centroid, pxyz);
+    
+                let minDist = Math.min(distance1, distance2, distance3, centroidDistance)
                 // TODO add check here to see if the triangle is close, if so add to closeArray for checking
-                if (avgZ < 50) {
-                    close.push(p1,p2,p3)
+                if (minDist < 5) {
+                    close.push([p1,p2,p3])
                 }
+                
                 let sumTriangleNormal = triangleNormal[0] + triangleNormal[1] + triangleNormal[2]
                 if (sumTriangleNormal < 0.0 || avgZ > 50 ) {
                     continue; 
-                }                    
+                }       
+                             
                 let preRotateNormal = crossProduct([triangleCoordinates[i1], triangleCoordinates[i2], triangleCoordinates[i3]])
-                let shadingValue = calcLighting(preRotateNormal)
+                let shadingValue = minDist < 5 ? 1 : calcLighting(preRotateNormal)
                 
                 //console.log(lightTriangleNormal)
     
@@ -257,11 +276,11 @@ export default function TwoDEngine( { dark } : importStruc){
                 //pxyz[1] -= Math.sin(pXang) * playerSpeed;  // Vertical movement
                 let newChangeB = pxyz[2] += Math.cos(pYang) * Math.cos(pXang) * playerSpeed;
 
-                for (const triangle of close){
-                    if (intersecting(triangle, newChangeA, newChangeB)){
-                        return
-                    } 
-                }
+                //for (const triangle of close){
+                //    if (intersecting(triangle, newChangeA, newChangeB)){
+                //        return
+                //    } 
+                //}
                 pxyz[0] = newChangeA
                 pxyz[2] = newChangeB
             }

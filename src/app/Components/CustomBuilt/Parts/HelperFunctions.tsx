@@ -85,7 +85,9 @@ export function cosineSimilarity(A: number[], B: number[]) {
     const magB = getMagnitude(B);
     return (dotProd / (magA * magB));
 }
-export function intersecting(triangle, newChangeA, newChangeB){
-    
-
+export function GetDistanceX([x1,y1,z1] : number[],[x2,y2,z2] : number[]){
+    return Math.sqrt(
+        (x2 - x1) ** 2 + 
+        (z2 - z1) ** 2
+    )
 }
