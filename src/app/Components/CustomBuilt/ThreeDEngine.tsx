@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, cosineSimilarity, GetDistanceX} from './Parts/HelperFunctions'
+import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, cosineSimilarity, GetDistanceX, getIntersection} from './Parts/HelperFunctions'
 import { objects, WORLD } from "./Data/ShapeFolder"
 import {clipTriangleToNearPlane} from "./Parts/ClipAndInter"
 
@@ -76,7 +76,12 @@ export default function TwoDEngine( { dark } : importStruc){
             for (const _obj of toDraw){
                 drawTriangles(_obj[0], _obj[1])
             }
-            console.log(close)
+            for (const _obj of close){
+                if (!paused && getIntersection(_obj, pxyz)){
+                    console.log("TOUCHING")
+                }
+            }
+            //console.log(close)
         }
         
     }
@@ -110,6 +115,12 @@ export default function TwoDEngine( { dark } : importStruc){
                 let avgY = (p1[1] + p2[1] + p3[1]) / 3;
                 // Check if the triangle is facing the player
                 let triangleNormal = crossProduct([p1, p2, p3])
+
+                let sumTriangleNormal = triangleNormal[0] + triangleNormal[1] + triangleNormal[2]
+                if (sumTriangleNormal < 0.0 || avgZ > 50 ) {
+                    continue; 
+                }       
+                                
                 let distance1 = GetDistanceX([x1,y1,z1], pxyz)
                 let distance2 = GetDistanceX([x2,y2,z2], pxyz)
                 let distance3 = GetDistanceX([x3,y3,z3], pxyz)
@@ -128,11 +139,7 @@ export default function TwoDEngine( { dark } : importStruc){
                     close.push([p1,p2,p3])
                 }
                 
-                let sumTriangleNormal = triangleNormal[0] + triangleNormal[1] + triangleNormal[2]
-                if (sumTriangleNormal < 0.0 || avgZ > 50 ) {
-                    continue; 
-                }       
-                             
+     
                 let preRotateNormal = crossProduct([triangleCoordinates[i1], triangleCoordinates[i2], triangleCoordinates[i3]])
                 let shadingValue = minDist < 5 ? 1 : calcLighting(preRotateNormal)
                 
