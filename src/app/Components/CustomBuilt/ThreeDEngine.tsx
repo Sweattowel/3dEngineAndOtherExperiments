@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, cosineSimilarity} from './Parts/HelperFunctions'
+import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, cosineSimilarity, intersecting} from './Parts/HelperFunctions'
 import { objects, WORLD } from "./Data/ShapeFolder"
 import {clipTriangleToNearPlane} from "./Parts/ClipAndInter"
 
@@ -34,6 +34,7 @@ export default function TwoDEngine( { dark } : importStruc){
     useEffect(() => {
         const canvas = document.getElementById("Canvas") as HTMLCanvasElement;
         setInterval(gameLoop, 1000 / __init__.fps)
+        setInterval(() => setCoordinates(pxyz), 1000 / __init__.fps)
 
         // Add control event listeners
         window.addEventListener("keydown", keyDown);
@@ -46,7 +47,7 @@ export default function TwoDEngine( { dark } : importStruc){
     const [coordinates, setCoordinates] = useState(pxyz)
 
 
-    const lightSources = [[100,100,0]]
+    const lightSources = [[1,1,0]]
 
     function calcLighting(normal : number[]){
         return cosineSimilarity(normal, lightSources[0])
@@ -54,18 +55,27 @@ export default function TwoDEngine( { dark } : importStruc){
     function getMidPoint(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, ){
         return [x2 - x1, y2 - y1, z2-z1]
     }
-    
+    const toDraw = [
+        [objects[0].triangleCoordinates, objects[0].faceCoordinates],
+        [WORLD[0].triangleCoordinates, WORLD[0].faceCoordinates]
+    ]
+    let drawQueue: number[][] = []
+    let close: any[] = []
+
     function gameLoop(){
         drawQueue = []
+        close = []
         clearRect()
         controlLogic();
         //for (const obj of _obj){
         //    drawTriangles(obj);
         //}
         if (!paused){
-            drawTriangles(objects[0].triangleCoordinates, objects[0].faceCoordinates)
-            drawTriangles(WORLD[0].triangleCoordinates, WORLD[0].faceCoordinates)
+            for (const _obj of toDraw){
+                drawTriangles(_obj[0], _obj[1])
+            }
         }
+        
     }
    
 
@@ -96,7 +106,10 @@ export default function TwoDEngine( { dark } : importStruc){
                 let avgZ = (p1[2] + p2[2] + p3[2]) / 3;
                 // Check if the triangle is facing the player
                 let triangleNormal = crossProduct([p1, p2, p3])
-                
+                // TODO add check here to see if the triangle is close, if so add to closeArray for checking
+                if (avgZ < 50) {
+                    close.push(p1,p2,p3)
+                }
                 let sumTriangleNormal = triangleNormal[0] + triangleNormal[1] + triangleNormal[2]
                 if (sumTriangleNormal < 0.0 || avgZ > 50 ) {
                     continue; 
@@ -132,14 +145,11 @@ export default function TwoDEngine( { dark } : importStruc){
     }
     
     
-    
-    
-    let drawQueue: number[][] = []
     function drawInOrder(){
         drawQueue.sort((a,b) => b[6] - a[6])
         //console.log(drawQueue)
         for (let i = 0; i < drawQueue.length; i++){
-            let [dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage ,colourMulti] = drawQueue[i];           
+            let [dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage ,colourMulti] = drawQueue[i];    
             //drawLine(dis1X, dis1Y, dis2X, dis2Y);
             //drawLine(dis2X, dis2Y, dis3X, dis3Y);
             //drawLine(dis3X, dis3Y, dis1X, dis1Y);   
@@ -154,7 +164,7 @@ export default function TwoDEngine( { dark } : importStruc){
     
         if (ctx) {
             // Ensure colourMulti is within the range 0 to 1
-            colourMulti = Math.min(1, Math.max(0, colourMulti));
+            colourMulti = Math.min(1, Math.max(0.2, colourMulti));
             
             // Calculate color components
             const A = Math.floor(Math.min(255 * colourMulti));
@@ -240,11 +250,20 @@ export default function TwoDEngine( { dark } : importStruc){
     function controlLogic() {
         //playerSpeed = playerSpeed + factor
         if(!paused){
+            
             if (up && !turning && !strafing) {
                 // Move forward in the direction the player is facing
-                pxyz[0] += Math.sin(pYang) * Math.cos(pXang) * playerSpeed;
+                let newChangeA = pxyz[0] + Math.sin(pYang) * Math.cos(pXang) * playerSpeed;
                 //pxyz[1] -= Math.sin(pXang) * playerSpeed;  // Vertical movement
-                pxyz[2] += Math.cos(pYang) * Math.cos(pXang) * playerSpeed;
+                let newChangeB = pxyz[2] += Math.cos(pYang) * Math.cos(pXang) * playerSpeed;
+
+                for (const triangle of close){
+                    if (intersecting(triangle, newChangeA, newChangeB)){
+                        return
+                    } 
+                }
+                pxyz[0] = newChangeA
+                pxyz[2] = newChangeB
             }
             if (down && !turning && !strafing) {
                 // Move backward in the direction the player is facing
