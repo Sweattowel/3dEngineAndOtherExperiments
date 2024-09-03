@@ -74,21 +74,14 @@ export function dotProduct(A: number[], B: number[]){
     
     return aX * bX + aY * bY + aZ * bZ
 }
-
-export function angleBetween(vectorA: number[], vectorB: number[]): number {
-    vectorA = normalize(vectorA)
-    vectorB = normalize(vectorB)
-    const dot = dotProduct(vectorA, vectorB);
-    const magnitudeA = Math.sqrt(vectorA[0] ** 2 + vectorA[1] ** 2 + vectorA[2] ** 2);
-    const magnitudeB = Math.sqrt(vectorB[0] ** 2 + vectorB[1] ** 2 + vectorB[2] ** 2);
-
-    // Normalize the vectors within the cosine function
-    const cosTheta = dot / (magnitudeA * magnitudeB);
-    const angle = Math.acos(Math.max(-1, Math.min(1, cosTheta))); // Clamp to [-1, 1] to avoid NaN errors
-
-    return angle;
+ 
+export function getMagnitude(V: number[]) {
+    return Math.sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
 }
-function normalize(vector: number[]): number[] {
-    const magnitude = Math.sqrt(vector[0] ** 2 + vector[1] ** 2 + vector[2] ** 2);
-    return vector.map(v => v / magnitude);
+
+export function cosineSimilarity(A: number[], B: number[]) {
+    const dotProd = dotProduct(A, B);
+    const magA = getMagnitude(A);
+    const magB = getMagnitude(B);
+    return dotProd / (magA * magB);
 }

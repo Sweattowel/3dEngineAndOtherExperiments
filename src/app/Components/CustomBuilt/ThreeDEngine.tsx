@@ -1,5 +1,5 @@
-import { useEffect } from "react"
-import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, angleBetween} from './Parts/HelperFunctions'
+import { useEffect, useState } from "react"
+import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, cosineSimilarity} from './Parts/HelperFunctions'
 import { objects, WORLD } from "./Data/ShapeFolder"
 import {clipTriangleToNearPlane} from "./Parts/ClipAndInter"
 
@@ -43,7 +43,18 @@ export default function TwoDEngine( { dark } : importStruc){
             await canvas.requestPointerLock();
           });
     },[])
+    const [coordinates, setCoordinates] = useState(pxyz)
 
+
+    const lightSources = [[100,100,0]]
+
+    function calcLighting(normal : number[]){
+        return cosineSimilarity(normal, lightSources[0])
+    }
+    function getMidPoint(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, ){
+        return [x2 - x1, y2 - y1, z2-z1]
+    }
+    
     function gameLoop(){
         drawQueue = []
         clearRect()
@@ -54,7 +65,6 @@ export default function TwoDEngine( { dark } : importStruc){
         if (!paused){
             drawTriangles(objects[0].triangleCoordinates, objects[0].faceCoordinates)
             drawTriangles(WORLD[0].triangleCoordinates, WORLD[0].faceCoordinates)
-            
         }
     }
    
@@ -75,7 +85,9 @@ export default function TwoDEngine( { dark } : importStruc){
                 const [x1, y1, z1, w1] = triangleCoordinates[i1];
                 const [x2, y2, z2, w2] = triangleCoordinates[i2];
                 const [x3, y3, z3, w3] = triangleCoordinates[i3];
-    
+
+
+
                 // Apply transformations (rotation, translation)
                 const p1 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x1 - pxyz[0], y1 - (y1 * 2) - pxyz[1], z1 - pxyz[2], w1])));
                 const p2 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x2 - pxyz[0], y2 - (y2 * 2) - pxyz[1], z2 - pxyz[2], w2])));
@@ -85,11 +97,13 @@ export default function TwoDEngine( { dark } : importStruc){
                 // Check if the triangle is facing the player
                 let triangleNormal = crossProduct([p1, p2, p3])
                 
-                if ((triangleNormal[0] + triangleNormal[1] + triangleNormal[2]) < 0.0 || avgZ > 50 ) {
+                let sumTriangleNormal = triangleNormal[0] + triangleNormal[1] + triangleNormal[2]
+                if (sumTriangleNormal < 0.0 || avgZ > 50 ) {
                     continue; 
                 }                    
-                let light_direction = [0.0,-10.0,-1.0]
-                let lightTriangleNormal = angleBetween(triangleNormal, light_direction)
+                let preRotateNormal = crossProduct([triangleCoordinates[i1], triangleCoordinates[i2], triangleCoordinates[i3]])
+                let shadingValue = calcLighting(preRotateNormal)
+                
                 //console.log(lightTriangleNormal)
     
                 // Clip the triangles to the near plane
@@ -110,7 +124,7 @@ export default function TwoDEngine( { dark } : importStruc){
     
                     // Calculate average Z depth for sorting
                     const zAverage = (trans1[2] + trans2[2] + trans3[2]) / 3;
-                    drawQueue.push([dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage, lightTriangleNormal]);
+                    drawQueue.push([dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage, shadingValue]);
                 }
             }
         }
@@ -125,10 +139,10 @@ export default function TwoDEngine( { dark } : importStruc){
         drawQueue.sort((a,b) => b[6] - a[6])
         //console.log(drawQueue)
         for (let i = 0; i < drawQueue.length; i++){
-            let [dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, colourMulti] = drawQueue[i];           
-            drawLine(dis1X, dis1Y, dis2X, dis2Y);
-            drawLine(dis2X, dis2Y, dis3X, dis3Y);
-            drawLine(dis3X, dis3Y, dis1X, dis1Y);   
+            let [dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage ,colourMulti] = drawQueue[i];           
+            //drawLine(dis1X, dis1Y, dis2X, dis2Y);
+            //drawLine(dis2X, dis2Y, dis3X, dis3Y);
+            //drawLine(dis3X, dis3Y, dis1X, dis1Y);   
             
             drawColourTriangle(dis1X,dis1Y,dis2X,dis2Y,dis3X,dis3Y, colourMulti)       
         }
@@ -312,5 +326,8 @@ export default function TwoDEngine( { dark } : importStruc){
                 height={__init__.height}
                 width={__init__.width}
             />
+            <p>
+                {coordinates}
+            </p>
         </main>)
 }
