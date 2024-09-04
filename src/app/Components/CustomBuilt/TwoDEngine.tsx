@@ -114,7 +114,7 @@ export default function TwoDEngine( { dark }: importStruc){
         pixel(centerX + 1, centerY + 1);        
     }
     function clearRect(){
-        const canvas = document.getElementById("Canvas")
+        const canvas = document.getElementById("Canvas") as HTMLElement
         const ctx = canvas!.getContext("2d")
         ctx.fillStyle = "#000"
         ctx.fillRect(0,0,canvasSize.width, canvasSize.height)

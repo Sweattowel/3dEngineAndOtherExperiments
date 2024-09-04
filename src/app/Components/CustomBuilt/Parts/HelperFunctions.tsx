@@ -91,6 +91,13 @@ export function GetDistanceX([x1,y1,z1] : number[],[x2,y2,z2] : number[]){
         (z2 - z1) ** 2
     )
 }
+export function getFullDistance([x1,y1,z1] : number[],[x2,y2,z2] : number[]){
+    return Math.sqrt(
+        (x2 - x1) ** 2 + 
+        (y2 - y1) ** 2 + 
+        (z2 - z1) ** 2 
+    )
+}
 export function getIntersection(triangle: [number, number, number, number][], player: [number, number, number]): boolean {
     let normal = crossProduct(triangle)
     return (
@@ -105,3 +112,4 @@ export function getIntersection(triangle: [number, number, number, number][], pl
 function subtractVectors(v1: [number, number, number], v2: [number, number, number]): [number, number, number] {
     return [v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]];
 }
+

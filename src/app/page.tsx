@@ -2,9 +2,6 @@
 import { useEffect, useState } from 'react';
 import TopBar from './Components/TopBar/TopBar';
 import Posts from './Components/Bengal/Posts';
-import Flappy from './Components/Flappy/Flappy';
-import MathTest from './Components/MathTest/MathTest';
-import DoomFollow from './Components/DoomFollow/DoomFollow';
 import TwoDEngine from './Components/CustomBuilt/TwoDEngine';
 import ThreeDEngine from './Components/CustomBuilt/ThreeDEngine';
 

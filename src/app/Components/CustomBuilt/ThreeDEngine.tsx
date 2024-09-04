@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, cosineSimilarity, GetDistanceX, getIntersection} from './Parts/HelperFunctions'
+import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, cosineSimilarity, GetDistanceX, getFullDistance, getIntersection} from './Parts/HelperFunctions'
 import { objects, WORLD } from "./Data/ShapeFolder"
 import {clipTriangleToNearPlane} from "./Parts/ClipAndInter"
 
@@ -57,9 +57,9 @@ export default function TwoDEngine( { dark } : importStruc){
     }
     const toDraw = [
         [objects[0].triangleCoordinates, objects[0].faceCoordinates],
-        [WORLD[0].triangleCoordinates, WORLD[0].faceCoordinates]
+        //[WORLD[0].triangleCoordinates, WORLD[0].faceCoordinates]
     ]
-    let drawQueue: number[][] = []
+    let drawQueue: any[][] = []
     let close: any[] = []
 
     function gameLoop(){
@@ -72,13 +72,38 @@ export default function TwoDEngine( { dark } : importStruc){
         //    drawTriangles(obj);
         //}
         if (!paused){
-
+            drawTriangles([ 
+                // Front face
+                [pxyz[0] + 1, pxyz[1] + 2, pxyz[2] + 1, 1],  // Top-right 
+                [pxyz[0] + 1, pxyz[1] - 2, pxyz[2] + 1, 1],  // Bottom-right
+                [pxyz[0] - 1, pxyz[1] - 2, pxyz[2] + 1, 1],  // Bottom-left
+                [pxyz[0] - 1, pxyz[1] + 2, pxyz[2] + 1, 1],  // Top-left
+                // Back face
+                [pxyz[0] + 1, pxyz[1] + 2, pxyz[2] - 1, 1],  // Top-right
+                [pxyz[0] + 1, pxyz[1] - 2, pxyz[2] - 1, 1],  // Bottom-right
+                [pxyz[0] - 1, pxyz[1] - 2, pxyz[2] - 1, 1],  // Bottom-left
+                [pxyz[0] - 1, pxyz[1] + 2, pxyz[2] - 1, 1],  // Top-left
+            ], [
+                // Front face
+                [1, 2, 3], [1, 3, 4],
+                // Back face
+                [5, 6, 7], [5, 7, 8],
+                // Left face
+                [4, 3, 7], [4, 7, 8],
+                // Right face
+                [1, 2, 6], [1, 6, 5],
+                // Top face
+                [1, 4, 8], [1, 8, 5],
+                // Bottom face
+                [2, 3, 7], [2, 7, 6]
+            ], true);
+            
             for (const _obj of toDraw){
-                drawTriangles(_obj[0], _obj[1])
+                drawTriangles(_obj[0], _obj[1], false)
             }
             for (const _obj of close){
                 if (!paused && getIntersection(_obj, pxyz)){
-                    console.log("TOUCHING")
+                    //console.log("TOUCHING")
                 }
             }
             //console.log(close)
@@ -87,7 +112,7 @@ export default function TwoDEngine( { dark } : importStruc){
     }
    
 
-    function drawTriangles(triangleCoordinates: number[][], faceCoordinates: number[][]) {
+    function drawTriangles(triangleCoordinates: number[][], faceCoordinates: number[][], drawAsWire: boolean) {
         const centerX = 400, centerY = 400;
         const perspective = 400;
         const nearPlane = 0.1;
@@ -112,12 +137,12 @@ export default function TwoDEngine( { dark } : importStruc){
                 const p3 = matmul(rotate_z(pZang), matmul(rotate_x(pXang), matmul(rotate_y(pYang), [x3 - pxyz[0], y3 - (y3 * 2) - pxyz[1], z3 - pxyz[2], w3])));
                 
                 let avgZ = (p1[2] + p2[2] + p3[2]) / 3;
-                let avgY = (p1[1] + p2[1] + p3[1]) / 3;
+
                 // Check if the triangle is facing the player
                 let triangleNormal = crossProduct([p1, p2, p3])
 
                 let sumTriangleNormal = triangleNormal[0] + triangleNormal[1] + triangleNormal[2]
-                if (sumTriangleNormal < 0.0 || avgZ > 50 ) {
+                if (!drawAsWire && sumTriangleNormal < 0.0 || avgZ > 50 ) {
                     continue; 
                 }       
                                 
@@ -140,8 +165,8 @@ export default function TwoDEngine( { dark } : importStruc){
                 }
                 
      
-                let preRotateNormal = crossProduct([triangleCoordinates[i1], triangleCoordinates[i2], triangleCoordinates[i3]])
-                let shadingValue = minDist < 5 ? 1 : calcLighting(preRotateNormal)
+                //let preRotateNormal = crossProduct([triangleCoordinates[i1], triangleCoordinates[i2], triangleCoordinates[i3]])
+                let shadingValue = minDist < 5 ? 1 : calcLighting(triangleCoordinates[i1])
                 
                 //console.log(lightTriangleNormal)
     
@@ -163,7 +188,7 @@ export default function TwoDEngine( { dark } : importStruc){
     
                     // Calculate average Z depth for sorting
                     const zAverage = (trans1[2] + trans2[2] + trans3[2]) / 3;
-                    drawQueue.push([dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage, shadingValue]);
+                    drawQueue.push([dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage, shadingValue, drawAsWire]);
                 }
             }
         }
@@ -175,12 +200,17 @@ export default function TwoDEngine( { dark } : importStruc){
         drawQueue.sort((a,b) => b[6] - a[6])
         //console.log(drawQueue)
         for (let i = 0; i < drawQueue.length; i++){
-            let [dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage ,colourMulti] = drawQueue[i];    
-            //drawLine(dis1X, dis1Y, dis2X, dis2Y);
-            //drawLine(dis2X, dis2Y, dis3X, dis3Y);
-            //drawLine(dis3X, dis3Y, dis1X, dis1Y);   
+            let [dis1X, dis1Y, dis2X, dis2Y, dis3X, dis3Y, zAverage ,colourMulti, drawAsWire] = drawQueue[i];    
+            if (drawAsWire){
+                drawLine(dis1X, dis1Y, dis2X, dis2Y);
+                drawLine(dis2X, dis2Y, dis3X, dis3Y);
+                drawLine(dis3X, dis3Y, dis1X, dis1Y);  
+            } else{
+                drawColourTriangle(dis1X,dis1Y,dis2X,dis2Y,dis3X,dis3Y, colourMulti) 
+            }
+ 
             
-            drawColourTriangle(dis1X,dis1Y,dis2X,dis2Y,dis3X,dis3Y, colourMulti)       
+      
         }
     }
 
@@ -251,11 +281,16 @@ export default function TwoDEngine( { dark } : importStruc){
             case 40: down = true; break;
             case 77: turning = true; break;
             case 78: strafing = true; break;
-            case 16: playerSpeed = 0.20; break;
-
+            case 16: playerSpeed = 0.50; break;
+           
             // toggles
             case 80: paused = !paused; break;
-        
+            case 72: {
+                //console.log(getFullDistance([0,0,0],pxyz))
+                console.log(calcLighting(pxyz))
+                let test = pxyz
+                lightSources[0] = test
+            }        
         }
     }
 
@@ -267,11 +302,11 @@ export default function TwoDEngine( { dark } : importStruc){
             case 40: down = false; break;
             case 77: turning = false; break;
             case 78: strafing = false; break;
-            case 16: playerSpeed = 0.03; break;
+            case 16: playerSpeed = 0.25; break;
         }
     }
     let turnSpeed = 0.03;
-    let playerSpeed = 0.03;
+    let playerSpeed = 0.25;
 
     function controlLogic() {
         //playerSpeed = playerSpeed + factor
