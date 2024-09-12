@@ -40,10 +40,9 @@ export function scale(scale_to: number){
         [0, 0, 0, 1],
     ]
 }
-export function matmul(matrix: number[] | any[], vector: number[] | any[]) {
-    let result = [];
+export function matmul(matrix: number[][], vector: number[]): number[] {
+    let result = Array(matrix.length).fill(0);
     for (let i = 0; i < matrix.length; i++) {
-        result[i] = 0;
         for (let j = 0; j < vector.length; j++) {
             result[i] += matrix[i][j] * vector[j];
         }
@@ -98,18 +97,3 @@ export function getFullDistance([x1,y1,z1] : number[],[x2,y2,z2] : number[]){
         (z2 - z1) ** 2 
     )
 }
-export function getIntersection(triangle: [number, number, number, number][], player: [number, number, number]): boolean {
-    let normal = crossProduct(triangle)
-    return (
-        // x == px y > pY z x >= pX
-        normal[0] == player[0] ||
-        normal[1] >= player[1] ||
-        normal[2] == player[2] 
-
-    )
-}
-
-function subtractVectors(v1: [number, number, number], v2: [number, number, number]): [number, number, number] {
-    return [v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]];
-}
-

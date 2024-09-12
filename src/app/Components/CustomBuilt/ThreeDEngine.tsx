@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, cosineSimilarity, GetDistanceX, getFullDistance, getIntersection} from './Parts/HelperFunctions'
+import {translate, rotate_x, rotate_y, rotate_z, scale, matmul, crossProduct, dotProduct, cosineSimilarity, GetDistanceX, getFullDistance} from './Parts/HelperFunctions'
 import { objects, WORLD } from "./Data/ShapeFolder"
 import {clipTriangleToNearPlane} from "./Parts/ClipAndInter"
 
@@ -57,7 +57,7 @@ export default function TwoDEngine( { dark } : importStruc){
     }
     const toDraw = [
         [objects[0].triangleCoordinates, objects[0].faceCoordinates],
-        //[WORLD[0].triangleCoordinates, WORLD[0].faceCoordinates]
+        [WORLD[0].triangleCoordinates, WORLD[0].faceCoordinates]
     ]
     let drawQueue: any[][] = []
     let close: any[] = []
@@ -100,11 +100,6 @@ export default function TwoDEngine( { dark } : importStruc){
             
             for (const _obj of toDraw){
                 drawTriangles(_obj[0], _obj[1], false)
-            }
-            for (const _obj of close){
-                if (!paused && getIntersection(_obj, pxyz)){
-                    //console.log("TOUCHING")
-                }
             }
             //console.log(close)
         }
@@ -164,11 +159,9 @@ export default function TwoDEngine( { dark } : importStruc){
                     close.push([p1,p2,p3])
                 }
                 
-     
+
                 //let preRotateNormal = crossProduct([triangleCoordinates[i1], triangleCoordinates[i2], triangleCoordinates[i3]])
                 let shadingValue = minDist < 5 ? 1 : calcLighting(triangleCoordinates[i1])
-                
-                //console.log(lightTriangleNormal)
     
                 // Clip the triangles to the near plane
                 const clippedTriangles = clipTriangleToNearPlane([p1, p2, p3], nearPlane);
@@ -314,10 +307,10 @@ export default function TwoDEngine( { dark } : importStruc){
             
             if (up && !turning && !strafing) {
                 // Move forward in the direction the player is facing
-                let newChangeA = pxyz[0] + Math.sin(pYang) * Math.cos(pXang) * playerSpeed;
+                let newChangeA = pxyz[0] += Math.sin(pYang) * playerSpeed;
                 //pxyz[1] -= Math.sin(pXang) * playerSpeed;  // Vertical movement
-                let newChangeB = pxyz[2] += Math.cos(pYang) * Math.cos(pXang) * playerSpeed;
-
+                let newChangeB = pxyz[2] += Math.cos(pYang) * playerSpeed;
+                //
                 //for (const triangle of close){
                 //    if (intersecting(triangle, newChangeA, newChangeB)){
                 //        return
@@ -328,9 +321,9 @@ export default function TwoDEngine( { dark } : importStruc){
             }
             if (down && !turning && !strafing) {
                 // Move backward in the direction the player is facing
-                pxyz[0] -= Math.sin(pYang) * Math.cos(pXang) * playerSpeed;
+                pxyz[0] -= Math.sin(pYang) * playerSpeed;
                 //pxyz[1] += Math.sin(pXang) * playerSpeed;  // Vertical movement
-                pxyz[2] -= Math.cos(pYang) * Math.cos(pXang) * playerSpeed;
+                pxyz[2] -= Math.cos(pYang) * playerSpeed;
             }
             if (left && !turning && !strafing) {
                 // Strafe left
